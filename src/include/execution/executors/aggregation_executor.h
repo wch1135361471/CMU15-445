@@ -55,7 +55,7 @@ class SimpleAggregationHashTable {
         case AggregationType::SumAggregate:
         case AggregationType::MinAggregate:
         case AggregationType::MaxAggregate:
-          // Others starts at null.
+          //          // Others starts at null.
           values.emplace_back(ValueFactory::GetNullValueByType(TypeId::INTEGER));
           break;
       }
@@ -71,69 +71,52 @@ class SimpleAggregationHashTable {
    * @param input The input value
    */
   void CombineAggregateValues(AggregateValue *result, const AggregateValue &input) {
-    /**
-     * * 注意输入参数：
-     *  参数1. 已经有的聚集内容   举例：【李四，20】,【蔡徐坤，25】, 【马保国，69】
-     *  参数2. 即将新加入的数据   举例： 【张三，18】
-     *  将属性列按照对应的聚集信息进行归类
-     * */
     for (uint32_t i = 0; i < agg_exprs_.size(); i++) {
       switch (agg_types_[i]) {
         case AggregationType::CountStarAggregate:
-          // 数量+1
-          result->aggregates_[i] = result->aggregates_[i].Add({INTEGER, 1});
+          result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
           break;
         case AggregationType::CountAggregate:
-          /* Q: count(*)和count有什么区别？
-           * A:count(*)包括了所有的列，相当于行数，在统计结果的时候，不会忽略列值为NULL。
-           * count(列名)只包括列名那一列，在统计结果的时候，会忽略列值为空。
-           * */
-          if (!input.aggregates_[i].IsNull()) {
-            if (result->aggregates_[i].IsNull()) {
-              result->aggregates_[i] = Value(INTEGER, 0);
-            }
-            result->aggregates_[i] = result->aggregates_[i].Add({INTEGER, 1});
+          if (result->aggregates_[i].IsNull() && !input.aggregates_[i].IsNull()) {
+            result->aggregates_[i] = ValueFactory::GetIntegerValue(1);
+          } else if (!input.aggregates_[i].IsNull()) {
+            result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
           }
           break;
         case AggregationType::SumAggregate:
-          // result没有值的时候，先赋初值
-          if (!input.aggregates_[i].IsNull() && result->aggregates_[i].IsNull()) {
-            result->aggregates_[i] = Value(INTEGER, 0);
-          }
-          // 只有是整数时才能累加
-          if (!input.aggregates_[i].IsNull() && input.aggregates_[i].CheckInteger()) {
-            result->aggregates_[i] = result->aggregates_[i].Add({input.aggregates_[i]});
+          if (result->aggregates_[i].IsNull()) {
+            result->aggregates_[i] = input.aggregates_[i];
+          } else if (!input.aggregates_[i].IsNull()) {
+            result->aggregates_[i] = result->aggregates_[i].Add(input.aggregates_[i]);
           }
           break;
         case AggregationType::MinAggregate:
-          // 1. 为空
-          // 2. 比现有的小
-          if (!input.aggregates_[i].IsNull() &&
-              (result->aggregates_[i].IsNull() ||
-               input.aggregates_[i].CompareLessThan(result->aggregates_[i]) == CmpBool::CmpTrue)) {
+          if (result->aggregates_[i].IsNull()) {
             result->aggregates_[i] = input.aggregates_[i];
+          } else if (!input.aggregates_[i].IsNull()) {
+            result->aggregates_[i] = result->aggregates_[i].Min(input.aggregates_[i]);
           }
           break;
         case AggregationType::MaxAggregate:
-          // 1. 为空
-          // 2. 比现有的大
-          if (!input.aggregates_[i].IsNull() &&
-              (result->aggregates_[i].IsNull() ||
-               input.aggregates_[i].CompareGreaterThan(result->aggregates_[i]) == CmpBool::CmpTrue)) {
+          if (result->aggregates_[i].IsNull()) {
             result->aggregates_[i] = input.aggregates_[i];
+          } else if (!input.aggregates_[i].IsNull()) {
+            result->aggregates_[i] = result->aggregates_[i].Max(input.aggregates_[i]);
           }
           break;
       }
     }
   }
 
+  void Insert(const AggregateKey &agg_key, const AggregateValue &agg_val) {
+    ht_.insert({agg_key, GenerateInitialAggregateValue()});
+  }
   /**
    * Inserts a value into the hash table and then combines it with the current aggregation.
    * @param agg_key the key to be inserted
    * @param agg_val the value to be inserted
    */
   void InsertCombine(const AggregateKey &agg_key, const AggregateValue &agg_val) {
-    /*真正的哈希表unordered_map<key,value>, 如果没有数据，第一次插入，先初始化*/
     if (ht_.count(agg_key) == 0) {
       ht_.insert({agg_key, GenerateInitialAggregateValue()});
     }
@@ -246,9 +229,10 @@ class AggregationExecutor : public AbstractExecutor {
   /** The child executor that produces tuples over which the aggregation is computed */
   std::unique_ptr<AbstractExecutor> child_;
   /** Simple aggregation hash table */
-  SimpleAggregationHashTable aht_;  // 哈希表
+  SimpleAggregationHashTable aht_;
+  // TODO(Student): Uncomment SimpleAggregationHashTable aht_;
   /** Simple aggregation hash table iterator */
-  SimpleAggregationHashTable::Iterator aht_iterator_;  // 迭代器
-  bool successful_{false};
+  SimpleAggregationHashTable::Iterator aht_iterator_;
+  // TODO(Student): Uncomment SimpleAggregationHashTable::Iterator aht_iterator_;
 };
 }  // namespace bustub

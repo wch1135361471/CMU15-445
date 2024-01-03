@@ -23,6 +23,7 @@ void TopNExecutor::Init() {
         } else if (it.first == OrderByType::DESC) {
           flag = !is_less_than;
         } else {
+          // error
           BUSTUB_ASSERT(true, "not enter here!");
         }
         return flag;

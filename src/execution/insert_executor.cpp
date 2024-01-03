@@ -36,6 +36,7 @@ void InsertExecutor::Init() {
     }
   }
   child_executor_->Init();
+  // throw NotImplementedException("InsertExecutor is not implemented"); 、
 }
 
 auto InsertExecutor::Next(Tuple *tuple, RID *rid) -> bool {
@@ -75,5 +76,4 @@ auto InsertExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   *tuple = Tuple(values, &GetOutputSchema());
   return true;
 }
-
 }  // namespace bustub

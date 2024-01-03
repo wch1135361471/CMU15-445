@@ -54,7 +54,10 @@ class Context {
   // You may want to use this when getting value, but not necessary.
   std::deque<ReadPageGuard> read_set_;
 
+  std::deque<page_id_t> access_set_;
   auto IsRootPage(page_id_t page_id) -> bool { return page_id == root_page_id_; }
+  auto GetWritePageGuardAt(BufferPoolManager *bpm, page_id_t page_id) -> WritePageGuard;
+  auto GetReadPageGuardAt(BufferPoolManager *bpm, page_id_t page_id) -> ReadPageGuard;
   ~Context();
 };
 
@@ -132,7 +135,9 @@ class BPlusTree {
   // read data from file and remove one by one
   void RemoveFromFile(const std::string &file_name, Transaction *txn = nullptr);
 
-  void InsertIntoParent(page_id_t leaf_page_left_id, KeyType key, page_id_t leaf_page_right_id, Context &ctx);
+  void InsertInParent(page_id_t leaf_page_left_id, KeyType key, page_id_t leaf_page_right_id, Context &ctx);
+
+  auto GetParentPageId(page_id_t child, Context &ctx) -> page_id_t;
 
  private:
   /* Debug Routines for FREE!! */

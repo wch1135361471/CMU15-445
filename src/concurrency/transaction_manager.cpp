@@ -31,7 +31,31 @@ void TransactionManager::Commit(Transaction *txn) {
 
 void TransactionManager::Abort(Transaction *txn) {
   /* TODO: revert all the changes in write set */
-
+  for (auto write : *(txn->GetWriteSet())) {
+    TupleMeta meta = write.table_heap_->GetTupleMeta(write.rid_);
+    meta.is_deleted_ = !meta.is_deleted_;
+    write.table_heap_->UpdateTupleMeta(meta, write.rid_);
+  }
+  for (auto write : *(txn->GetIndexWriteSet())) {
+    IndexInfo *index_info = write.catalog_->GetIndex(write.index_oid_);
+    TableInfo *table_info = write.catalog_->GetTable(write.table_oid_);
+    if (write.wtype_ == WType::DELETE) {
+      index_info->index_->InsertEntry(
+          write.tuple_.KeyFromTuple(table_info->schema_, index_info->key_schema_, index_info->index_->GetKeyAttrs()),
+          write.rid_, txn);
+    } else if (write.wtype_ == WType::INSERT) {
+      index_info->index_->DeleteEntry(
+          write.tuple_.KeyFromTuple(table_info->schema_, index_info->key_schema_, index_info->index_->GetKeyAttrs()),
+          write.rid_, txn);
+    } else if (write.wtype_ == WType::UPDATE) {
+      index_info->index_->DeleteEntry(
+          write.tuple_.KeyFromTuple(table_info->schema_, index_info->key_schema_, index_info->index_->GetKeyAttrs()),
+          write.rid_, txn);
+      index_info->index_->InsertEntry(write.old_tuple_.KeyFromTuple(table_info->schema_, index_info->key_schema_,
+                                                                    index_info->index_->GetKeyAttrs()),
+                                      write.rid_, txn);
+    }
+  }
   ReleaseLocks(txn);
 
   txn->SetState(TransactionState::ABORTED);

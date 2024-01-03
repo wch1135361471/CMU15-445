@@ -50,10 +50,9 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const page_id_t 
 }
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveFirstToEndOf(B_PLUS_TREE_INTERNAL_PAGE_TYPE *recipient) {
-  // 把右边的第一个移动到左边的末尾
   int n = GetSize();
   MappingType tmp = array_[1];
-  for (int i = 1; i + 1 < n; i++) {
+  for (int i = 1; i < n; i++) {
     array_[i] = array_[i + 1];
   }
   int rn = recipient->GetSize();
@@ -71,7 +70,6 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(B_PLUS_TREE_INTERNAL_PAGE_TYPE *
     recipient->array_[j++] = array_[i];
   }
   recipient->IncreaseSize(j);
-  // 因为是从1开始编号的
   this->IncreaseSize(-(j - 1));
 }
 INDEX_TEMPLATE_ARGUMENTS
@@ -99,7 +97,6 @@ INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetValueAt(int index, const ValueType &value) { array_[index].second = value; }
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertFirstOf(const page_id_t &value) {
-  // 在最前面插入value
   int n = GetSize();
   for (int i = n; i > 0; i--) {
     std::swap(array_[i], array_[i - 1]);
@@ -120,8 +117,6 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveKeyAt(const KeyType &key, const KeyCo
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator &comparator) const -> int {
-  // 内部节点的二分查找
-  // 查找范围[1, n-1]
   int l = 1;
   int r = GetSize() - 1;
   int ans = r + 1;

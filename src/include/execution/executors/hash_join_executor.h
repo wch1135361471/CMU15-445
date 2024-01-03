@@ -23,10 +23,14 @@
 #include "execution/executors/abstract_executor.h"
 #include "execution/plans/hash_join_plan.h"
 #include "storage/table/tuple.h"
-
 namespace bustub {
 struct HashJoinKey {
   std::vector<Value> keys_;
+  /**
+   * Compares two aggregate keys for equality.
+   * @param other the other aggregate key to be compared with
+   * @return `true` if both aggregate keys have equivalent group-by expressions, `false` otherwise
+   */
   auto operator==(const HashJoinKey &other) const -> bool {
     for (uint32_t i = 0; i < other.keys_.size(); i++) {
       if (keys_[i].CompareEquals(other.keys_[i]) != CmpBool::CmpTrue) {
@@ -36,13 +40,12 @@ struct HashJoinKey {
     return true;
   }
 };
-
 struct HashJoinValue {
   std::vector<Tuple> values_;
 };
-}  // end of namespace bustub
-
+}  // namespace bustub
 namespace std {
+
 /** Implements std::hash on AggregateKey */
 template <>
 struct hash<bustub::HashJoinKey> {
@@ -56,10 +59,9 @@ struct hash<bustub::HashJoinKey> {
     return curr_hash;
   }
 };
-}  // end of namespace std
 
+}  // namespace std
 namespace bustub {
-
 /**
  * HashJoinExecutor executes a nested-loop JOIN on two tables.
  */

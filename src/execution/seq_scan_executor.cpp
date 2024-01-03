@@ -10,19 +10,24 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <memory>
+
 #include "execution/executors/seq_scan_executor.h"
 
 namespace bustub {
 
-SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan)
-    : AbstractExecutor(exec_ctx), plan_(plan) {}
+SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan) : AbstractExecutor(exec_ctx) {
+  plan_ = plan;
+}
 
 void SeqScanExecutor::Init() {
+  //  throw NotImplementedException("SeqScanExecutor is not implemented");
   table_oid_t tid = plan_->GetTableOid();
   table_info_ = exec_ctx_->GetCatalog()->GetTable(tid);
   if (exec_ctx_->IsDelete() && !(exec_ctx_->GetTransaction()->IsTableIntentionExclusiveLocked(tid) ||
                                  exec_ctx_->GetTransaction()->IsTableExclusiveLocked(tid) ||
                                  exec_ctx_->GetTransaction()->IsTableSharedIntentionExclusiveLocked(tid))) {
+    // if is_delete op
     if (!exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_EXCLUSIVE,
                                                 tid)) {
       throw ExecutionException("can not get lock");
@@ -40,7 +45,7 @@ void SeqScanExecutor::Init() {
       }
     }
   }
-  iterator_ = std::make_unique<TableIterator>(table_info_->table_->MakeIterator());
+  iterator_ = std::make_unique<TableIterator>(table_info_->table_->MakeEagerIterator());
 }
 
 auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {

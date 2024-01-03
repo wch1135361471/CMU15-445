@@ -18,23 +18,76 @@
 #include <set>
 #include <unordered_map>
 #include <vector>
-
 #include "common/config.h"
 #include "common/macros.h"
 
 namespace bustub {
 
 enum class AccessType { Unknown = 0, Get, Scan };
-
+const size_t INF = 9000;
 class LRUKNode {
+ public:
+  void AddHistory(size_t timestamp) {
+    if (history_.size() == k_) {
+      history_.pop_front();
+    }
+    history_.push_back(timestamp);
+  }
+  auto GetFrameId() const -> frame_id_t { return fid_; }
+  //  size_t gethistorySize() const { return history_.size(); }
+  auto GetDis() const -> int {
+    if (history_.size() != k_) {
+      return INF;
+    }
+    return INF - history_.front();
+  }
+  auto GetIsEvictable() -> bool { return is_evictable_; }
+  void SetIsEvictable(bool isEvicatable) { is_evictable_ = isEvicatable; }
+
+  LRUKNode(const LRUKNode &&a) noexcept {
+    this->k_ = a.k_;
+    this->fid_ = a.fid_;
+    this->is_evictable_ = a.is_evictable_;
+    this->history_.clear();
+    history_ = a.history_;
+  }
+  LRUKNode(const LRUKNode &a) {
+    this->k_ = a.k_;
+    this->fid_ = a.fid_;
+    this->is_evictable_ = a.is_evictable_;
+    this->history_.clear();
+    history_ = a.history_;
+  }
+  auto operator=(const LRUKNode &a) -> LRUKNode & {
+    this->k_ = a.k_;
+    this->fid_ = a.fid_;
+    this->is_evictable_ = a.is_evictable_;
+    this->history_.clear();
+    history_ = a.history_;
+    return *this;
+  }
+  explicit LRUKNode(frame_id_t fid, size_t k) : k_(k), fid_(fid) {}
+  LRUKNode() = default;
+  auto operator<(const LRUKNode &node) const -> bool {
+    int a = node.GetDis();
+    int b = GetDis();
+    if (a != b) {
+      return b > a;
+    }
+    if (history_.back() != node.history_.back()) {
+      return history_.front() < node.history_.front();
+    }
+    return fid_ > node.fid_;
+  }
+
  private:
   /** History of last seen K timestamps of this page. Least recent timestamp stored in front. */
   // Remove maybe_unused if you start using them. Feel free to change the member variables as you want.
 
-  [[maybe_unused]] std::list<size_t> history_;
-  [[maybe_unused]] size_t k_;
-  [[maybe_unused]] frame_id_t fid_;
-  [[maybe_unused]] bool is_evictable_{false};
+  std::list<size_t> history_;
+  size_t k_;
+  frame_id_t fid_;
+  bool is_evictable_{false};
 };
 
 /**
@@ -113,7 +166,7 @@ class LRUKReplacer {
    *
    * If frame id is invalid, throw an exception or abort the process.
    *
-   * For other scenarios, this function should terminate without modifying anything.
+   * For other scenarios,
    *
    * @param frame_id id of frame whose 'evictable' status will be modified
    * @param set_evictable whether the given frame is evictable or not
@@ -151,18 +204,13 @@ class LRUKReplacer {
  private:
   // TODO(student): implement me! You can replace these member variables as you like.
   // Remove maybe_unused if you start using them.
-  [[maybe_unused]] std::unordered_map<frame_id_t, LRUKNode> node_store_;
-  [[maybe_unused]] size_t current_timestamp_{0};
-  size_t replacer_size_;
+  std::unordered_map<frame_id_t, LRUKNode> node_store_;
+  size_t current_timestamp_{0};
+  [[maybe_unused]] size_t curr_size_{0};
+  [[maybe_unused]] size_t replacer_size_;
   size_t k_;
-  size_t current_size_;
-  std::vector<bool> is_accessible_;
   std::mutex latch_;
-  std::unordered_map<int, size_t> use_count_;
-  std::list<frame_id_t> history_list_;
-  std::unordered_map<frame_id_t, std::list<int>::iterator> history_map_;
-  std::list<frame_id_t> cache_list_;
-  std::unordered_map<frame_id_t, std::list<int>::iterator> cache_map_;
+  std::set<LRUKNode> frame_set_;
 };
 
 }  // namespace bustub

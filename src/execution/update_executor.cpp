@@ -40,6 +40,7 @@ auto UpdateExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   while (child_executor_->Next(&update_tuple, &update_rid)) {
     // delete
     TupleMeta meta = table_info_->table_->GetTupleMeta(update_rid);
+    Tuple old_tuple = table_info_->table_->GetTuple(update_rid).second;
     meta.is_deleted_ = true;
     table_info_->table_->UpdateTupleMeta(meta, update_rid);
     // update content
@@ -49,9 +50,11 @@ auto UpdateExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
       values.push_back(value);
     }
     Tuple u_tuple(values, &table_info_->schema_);
-    TupleMeta meta_temp{};
+    meta.is_deleted_ = false;
     // update tableHeap
-    std::optional<RID> insert_rid = table_info_->table_->InsertTuple(meta_temp, u_tuple);
+    std::optional<RID> insert_rid = table_info_->table_->InsertTuple(meta, u_tuple);
+    exec_ctx_->GetTransaction()->AppendTableWriteRecord(
+        TableWriteRecord(table_id_, insert_rid.value(), table_info_->table_.get()));
     // update index
     for (auto &index_info_tmp : index_list_) {
       if (index_info_tmp != nullptr) {
@@ -61,6 +64,10 @@ auto UpdateExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
         index_info_tmp->index_->InsertEntry(u_tuple.KeyFromTuple(table_info_->schema_, index_info_tmp->key_schema_,
                                                                  index_info_tmp->index_->GetKeyAttrs()),
                                             insert_rid.value(), exec_ctx_->GetTransaction());
+        auto index_record = IndexWriteRecord(insert_rid.value(), table_id_, WType::UPDATE, u_tuple,
+                                             index_info_tmp->index_oid_, exec_ctx_->GetCatalog());
+        index_record.old_tuple_ = old_tuple;
+        exec_ctx_->GetTransaction()->AppendIndexWriteRecord(index_record);
       }
     }
     count++;

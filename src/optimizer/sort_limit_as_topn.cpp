@@ -2,6 +2,7 @@
 #include "execution/plans/sort_plan.h"
 #include "execution/plans/topn_plan.h"
 #include "optimizer/optimizer.h"
+
 namespace bustub {
 
 auto Optimizer::OptimizeSortLimitAsTopN(const AbstractPlanNodeRef &plan) -> AbstractPlanNodeRef {

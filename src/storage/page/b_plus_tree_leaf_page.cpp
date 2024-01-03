@@ -129,13 +129,9 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveEndToFrontOf(B_PLUS_TREE_LEAF_PAGE_TYPE *re
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator &comparator) const -> int {
-  // 叶子上的二分查找
-  // 范围[0, n-1]
   int l = 0;
   int r = GetSize() - 1;
   int ans = r + 1;
-  // C++ lower_bound()
-  // yxc B站：大雪菜
   while (l <= r) {
     int mid = (l + r) >> 1;
     if (comparator(array_[mid].first, key) >= 0) {

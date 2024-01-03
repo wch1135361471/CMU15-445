@@ -12,6 +12,7 @@
 
 #include "execution/executors/hash_join_executor.h"
 #include "type/value_factory.h"
+
 namespace bustub {
 
 HashJoinExecutor::HashJoinExecutor(ExecutorContext *exec_ctx, const HashJoinPlanNode *plan,

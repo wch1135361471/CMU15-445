@@ -15,7 +15,7 @@ INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::IndexIterator() = default;
 INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::IndexIterator(BufferPoolManager *bpm, const B_PLUS_TREE_LEAF_PAGE_TYPE *page, int index,
-                                  ReadPageGuard page_guard) {
+                                  BasicPageGuard page_guard) {
   bpm_ = bpm;
   page_ = page;
   index_ = index;
@@ -41,7 +41,7 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
   if (index_ + 1 >= page_->GetSize()) {
     page_id_t next_page_id = page_->GetNextPageId();
     if (next_page_id != INVALID_PAGE_ID) {
-      page_guard_ = bpm_->FetchPageRead(next_page_id);
+      page_guard_ = bpm_->FetchPageBasic(next_page_id);
       page_ = page_guard_.As<B_PLUS_TREE_LEAF_PAGE_TYPE>();
       index_ = 0;
     } else {

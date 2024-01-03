@@ -62,7 +62,8 @@ class BufferPoolManager {
    * first), and then call the AllocatePage() method to get a new page id. If the replacement frame has a dirty page,
    * you should write it back to the disk first. You also need to reset the memory and metadata for the new page.
    *
-   * Remember to "Pin" the frame by calling replacer.SetEvictable(frame_id, false)
+   * Remember to "Pin" the frame by call
+   * ing replacer.SetEvictable(frame_id, false)
    * so that the replacer wouldn't evict the frame before the buffer pool manager "Unpin"s it.
    * Also, remember to record the access history of the frame in the replacer for the lru-k algorithm to work.
    *

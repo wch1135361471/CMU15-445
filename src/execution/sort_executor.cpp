@@ -5,7 +5,6 @@ namespace bustub {
 SortExecutor::SortExecutor(ExecutorContext *exec_ctx, const SortPlanNode *plan,
                            std::unique_ptr<AbstractExecutor> &&child_executor)
     : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
-
 void SortExecutor::Init() {
   child_executor_->Init();
   Tuple produce_tuple;
@@ -26,7 +25,8 @@ void SortExecutor::Init() {
         } else if (it.first == OrderByType::DESC) {
           flag = !is_less_than;
         } else {
-          BUSTUB_ASSERT(true, "not enter here");
+          // error
+          BUSTUB_ASSERT(true, "not enter here!");
         }
         return flag;
       }
@@ -35,6 +35,7 @@ void SortExecutor::Init() {
   };
   std::sort(out_puts_.begin(), out_puts_.end(), comp);
   it_ = out_puts_.begin();
+  //  throw NotImplementedException("SortExecutor is not implemented");
 }
 
 auto SortExecutor::Next(Tuple *tuple, RID *rid) -> bool {
