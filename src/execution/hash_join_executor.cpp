@@ -27,7 +27,7 @@ HashJoinExecutor::HashJoinExecutor(ExecutorContext *exec_ctx, const HashJoinPlan
   right_child_ = std::move(right_child);
 }
 
-void HashJoinExecutor::Init() { 
+void HashJoinExecutor::Init() {
   std::vector<AbstractExpressionRef> left_expr = plan_->left_key_expressions_;
   std::vector<AbstractExpressionRef> right_expr = plan_->right_key_expressions_;
   uint32_t right_count = plan_->GetRightPlan()->OutputSchema().GetColumnCount();
@@ -38,77 +38,77 @@ void HashJoinExecutor::Init() {
   RID produce_rid;
   HashJoinKey key;
   HashJoinValue value;
-  while(right_child_->Next(&produce_tuple, &produce_rid)){
-    for(auto &it : right_expr){
+  while (right_child_->Next(&produce_tuple, &produce_rid)) {
+    for (auto &it : right_expr) {
       key.keys_.emplace_back(it->Evaluate(&produce_tuple, plan_->GetRightPlan()->OutputSchema()));
     }
-    if(ht_.find(key) == ht_.end()){
+    if (ht_.find(key) == ht_.end()) {
       ht_[key] = std::vector<Tuple>{produce_tuple};
-    }else{
+    } else {
       ht_[key].push_back(produce_tuple);
     }
     key.keys_.clear();
   }
-  if(plan_->GetJoinType() == JoinType::LEFT){
-    while(left_child_->Next(&produce_tuple, &produce_rid)){
+  if (plan_->GetJoinType() == JoinType::LEFT) {
+    while (left_child_->Next(&produce_tuple, &produce_rid)) {
       key.keys_.clear();
-      for(auto &it : left_expr){
+      for (auto &it : left_expr) {
         key.keys_.emplace_back(it->Evaluate(&produce_tuple, plan_->GetLeftPlan()->OutputSchema()));
       }
-      if(ht_.find(key) == ht_.end()){
+      if (ht_.find(key) == ht_.end()) {
         // left join return null
         std::vector<Value> values;
-        for(uint32_t i = 0; i < left_count; i++){
+        for (uint32_t i = 0; i < left_count; i++) {
           values.push_back(produce_tuple.GetValue(&plan_->GetLeftPlan()->OutputSchema(), i));
         }
-        for(uint32_t i = 0; i < right_count; i++){
+        for (uint32_t i = 0; i < right_count; i++) {
           values.push_back(
-            ValueFactory::GetNullValueByType(plan_->GetRightPlan()->OutputSchema().GetColumn(i).GetType()));
+              ValueFactory::GetNullValueByType(plan_->GetRightPlan()->OutputSchema().GetColumn(i).GetType()));
         }
         output_.emplace_back(values, &GetOutputSchema());
-      }else{
-        for(auto &it : ht_[key]){
+      } else {
+        for (auto &it : ht_[key]) {
           std::vector<Value> values;
-          for(uint32_t j = 0; j < left_count; j++){
+          for (uint32_t j = 0; j < left_count; j++) {
             values.push_back(produce_tuple.GetValue(&plan_->GetLeftPlan()->OutputSchema(), j));
           }
-          for(uint32_t j = 0; j < right_count; j++){
+          for (uint32_t j = 0; j < right_count; j++) {
             values.push_back(it.GetValue(&plan_->GetRightPlan()->OutputSchema(), j));
           }
           output_.emplace_back(values, &GetOutputSchema());
         }
       }
     }
-  }else if(plan_->GetJoinType() == JoinType::INNER){
-    while(left_child_->Next(&produce_tuple, &produce_rid)){
+  } else if (plan_->GetJoinType() == JoinType::INNER) {
+    while (left_child_->Next(&produce_tuple, &produce_rid)) {
       key.keys_.clear();
-      for(auto &it : left_expr){
+      for (auto &it : left_expr) {
         key.keys_.emplace_back(it->Evaluate(&produce_tuple, plan_->GetLeftPlan()->OutputSchema()));
       }
-      if(ht_.find(key) != ht_.end()){
-        for(const auto &tuple : ht_[key]){
+      if (ht_.find(key) != ht_.end()) {
+        for (const auto &tuple : ht_[key]) {
           std::vector<Value> values;
-          for(uint32_t j = 0; j < left_count; j++){
+          for (uint32_t j = 0; j < left_count; j++) {
             values.push_back(produce_tuple.GetValue(&plan_->GetLeftPlan()->OutputSchema(), j));
           }
-          for(uint32_t j = 0; j < right_count; j++){
+          for (uint32_t j = 0; j < right_count; j++) {
             values.push_back(tuple.GetValue(&plan_->GetRightPlan()->OutputSchema(), j));
           }
           output_.emplace_back(values, &GetOutputSchema());
         }
       }
     }
-  } 
+  }
   iterator_ = output_.begin();
 }
 
-auto HashJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool { 
-    if(iterator_ == output_.end()){
-      return false;
-    }
-    *tuple = *iterator_;
-    iterator_++;
-    return true;
- }
+auto HashJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool {
+  if (iterator_ == output_.end()) {
+    return false;
+  }
+  *tuple = *iterator_;
+  iterator_++;
+  return true;
+}
 
 }  // namespace bustub

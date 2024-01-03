@@ -23,19 +23,19 @@ InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *
   child_executor_ = std::move(child_executor);
 }
 
-
-void InsertExecutor::Init() { 
+void InsertExecutor::Init() {
   table_id_ = plan_->TableOid();
   table_info_ = exec_ctx_->GetCatalog()->GetTable(table_id_);
   index_list_ = exec_ctx_->GetCatalog()->GetTableIndexes(table_info_->name_);
-  if(!(exec_ctx_->GetTransaction()->IsTableIntentionExclusiveLocked(table_id_) || 
-      exec_ctx_->GetTransaction()->IsTableExclusiveLocked(table_id_) || 
-      exec_ctx_->GetTransaction()->IsTableSharedIntentionExclusiveLocked(table_id_))){
-        if(!exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_EXCLUSIVE, table_id_)){
-          throw ExecutionException("can not get lock");
-        }
-      }
-  child_executor_->Init(); 
+  if (!(exec_ctx_->GetTransaction()->IsTableIntentionExclusiveLocked(table_id_) ||
+        exec_ctx_->GetTransaction()->IsTableExclusiveLocked(table_id_) ||
+        exec_ctx_->GetTransaction()->IsTableSharedIntentionExclusiveLocked(table_id_))) {
+    if (!exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_EXCLUSIVE,
+                                                table_id_)) {
+      throw ExecutionException("can not get lock");
+    }
+  }
+  child_executor_->Init();
 }
 
 auto InsertExecutor::Next(Tuple *tuple, RID *rid) -> bool {

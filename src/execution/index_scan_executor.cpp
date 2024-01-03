@@ -24,9 +24,9 @@ void IndexScanExecutor::Init() {}
 
 auto IndexScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   while (iter_ != tree_->GetEndIterator()) {
-    //这个迭代器是P2 Task3中实现的索引迭代器
+    // 这个迭代器是P2 Task3中实现的索引迭代器
     *rid = (*iter_).second;
-    //通过rid到表中去拿到数据
+    // 通过rid到表中去拿到数据
     auto [meta, tuple_] = table_info_->table_->GetTuple(*rid);
     if (meta.is_deleted_) {
       ++iter_;

@@ -15,17 +15,17 @@ auto Trie::Get(std::string_view key) const -> const T * {
 
   for (auto c : key) {
     if (ptr->children_.count(c) != 0) {
-      //存在
+      // 存在
       ptr = ptr->children_.at(c);
     } else {
       return nullptr;
     }
   }
-  //终止节点
+  // 终止节点
   if (!ptr->is_value_node_) {
     return nullptr;
   }
-  //类型匹配吗？
+  // 类型匹配吗？
   auto value = dynamic_cast<const TrieNodeWithValue<T> *>(ptr.get());
   if (value != nullptr) {
     return value->value_.get();
@@ -57,27 +57,27 @@ auto Trie::Put(std::string_view key, T value) const -> Trie {
   }
 
   size_t i = 0;
-  //最后一个字符特殊处理
+  // 最后一个字符特殊处理
   for (; i < key.size() - 1; i++) {
     if (ptr->children_.count(key[i]) == 0) {
-      //不存在这个分支
+      // 不存在这个分支
       std::shared_ptr<TrieNode> node = std::make_shared<TrieNode>();
       ptr->children_[key[i]] = node;
       ptr = node;
     } else {
-      //存在这个分支
+      // 存在这个分支
       std::shared_ptr<TrieNode> new_node = ptr->children_.at(key[i])->Clone();
       ptr->children_[key[i]] = new_node;
       ptr = new_node;
     }
   }
-  //只剩最后一个字符没有处理
+  // 只剩最后一个字符没有处理
   std::shared_ptr<TrieNode> vale_node;
   if (ptr->children_.count(key.back()) == 0) {
-    //不存在
+    // 不存在
     vale_node = std::make_shared<TrieNodeWithValue<T>>(std::make_shared<T>(std::move(value)));
   } else {
-    //存在
+    // 存在
     vale_node = std::make_shared<TrieNodeWithValue<T>>(ptr->children_[key.back()]->children_,
                                                        std::make_shared<T>(std::move(value)));
   }

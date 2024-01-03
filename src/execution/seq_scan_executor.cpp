@@ -20,33 +20,32 @@ SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNod
 void SeqScanExecutor::Init() {
   table_oid_t tid = plan_->GetTableOid();
   table_info_ = exec_ctx_->GetCatalog()->GetTable(tid);
-  if(exec_ctx_->IsDelete() && ! (exec_ctx_->GetTransaction()->IsTableIntentionExclusiveLocked(tid) || 
-                                exec_ctx_->GetTransaction()->IsTableExclusiveLocked(tid) || 
-                                exec_ctx_->GetTransaction()->IsTableSharedIntentionExclusiveLocked(tid))){
-    if(!exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_EXCLUSIVE, tid))
-    {
+  if (exec_ctx_->IsDelete() && !(exec_ctx_->GetTransaction()->IsTableIntentionExclusiveLocked(tid) ||
+                                 exec_ctx_->GetTransaction()->IsTableExclusiveLocked(tid) ||
+                                 exec_ctx_->GetTransaction()->IsTableSharedIntentionExclusiveLocked(tid))) {
+    if (!exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_EXCLUSIVE,
+                                                tid)) {
       throw ExecutionException("can not get lock");
     }
-  }else{
-    if(exec_ctx_->GetTransaction()->GetIsolationLevel() != IsolationLevel::READ_UNCOMMITTED && 
-      !(exec_ctx_->GetTransaction()->IsTableExclusiveLocked(tid) || 
-        exec_ctx_->GetTransaction()->IsTableIntentionExclusiveLocked(tid) || 
-        exec_ctx_->GetTransaction()->IsTableSharedIntentionExclusiveLocked(tid) || 
-        exec_ctx_->GetTransaction()->IsTableSharedLocked(tid) || 
-        exec_ctx_->GetTransaction()->IsTableIntentionSharedLocked(tid)))
-        {
-          if(!exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_SHARED, tid))
-          {
-            throw ExecutionException("can not get lock");
-          }
-        }
+  } else {
+    if (exec_ctx_->GetTransaction()->GetIsolationLevel() != IsolationLevel::READ_UNCOMMITTED &&
+        !(exec_ctx_->GetTransaction()->IsTableExclusiveLocked(tid) ||
+          exec_ctx_->GetTransaction()->IsTableIntentionExclusiveLocked(tid) ||
+          exec_ctx_->GetTransaction()->IsTableSharedIntentionExclusiveLocked(tid) ||
+          exec_ctx_->GetTransaction()->IsTableSharedLocked(tid) ||
+          exec_ctx_->GetTransaction()->IsTableIntentionSharedLocked(tid))) {
+      if (!exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_SHARED,
+                                                  tid)) {
+        throw ExecutionException("can not get lock");
+      }
+    }
   }
   iterator_ = std::make_unique<TableIterator>(table_info_->table_->MakeIterator());
 }
 
 auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   std::pair<TupleMeta, Tuple> tup;
-    while (!iterator_->IsEnd()) {
+  while (!iterator_->IsEnd()) {
     if (exec_ctx_->IsDelete() &&
         !exec_ctx_->GetTransaction()->IsRowExclusiveLocked(plan_->GetTableOid(), iterator_->GetRID())) {
       if (!exec_ctx_->GetLockManager()->LockRow(exec_ctx_->GetTransaction(), LockManager::LockMode::EXCLUSIVE,

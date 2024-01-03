@@ -15,6 +15,7 @@
 #include <limits>
 #include <list>
 #include <mutex>  // NOLINT
+#include <set>
 #include <unordered_map>
 #include <vector>
 
