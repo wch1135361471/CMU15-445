@@ -47,6 +47,8 @@ class BPlusTreeInternalPage : public BPlusTreePage {
    */
   void Init(int max_size = INTERNAL_PAGE_SIZE);
 
+  void SetValueAt(int index, const ValueType &value);
+  void InsertFirstOf(const page_id_t &value);
   /**
    * @param index The index of the key to get. Index must be non-zero.
    * @return Key at index
@@ -60,12 +62,19 @@ class BPlusTreeInternalPage : public BPlusTreePage {
    */
   void SetKeyAt(int index, const KeyType &key);
 
+  auto Insert(const KeyType &key, const page_id_t &value, const KeyComparator &comparator) -> int;
   /**
    *
    * @param value the value to search for
    */
   auto ValueIndex(const ValueType &value) const -> int;
-
+  auto Lookup(const KeyType &key, const KeyComparator &comparator) const -> int;
+  auto RemoveKeyAt(const KeyType &key, const KeyComparator &comparator) -> bool;
+  void EraseAt(int index);
+  void MoveFirstToEndOf(B_PLUS_TREE_INTERNAL_PAGE_TYPE *recipient);
+  void MoveHalfTo(B_PLUS_TREE_INTERNAL_PAGE_TYPE *recipient);
+  void MoveAllTo(B_PLUS_TREE_INTERNAL_PAGE_TYPE *recipient);
+  void MoveEndToFrontOf(B_PLUS_TREE_INTERNAL_PAGE_TYPE *recipient);
   /**
    *
    * @param index the index
@@ -73,6 +82,7 @@ class BPlusTreeInternalPage : public BPlusTreePage {
    */
   auto ValueAt(int index) const -> ValueType;
 
+  auto GetValue(int index) const -> page_id_t;
   /**
    * @brief For test only, return a string representing all keys in
    * this internal page, formatted as "(key1,key2,key3,...)"

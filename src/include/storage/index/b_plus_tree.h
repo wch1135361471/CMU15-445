@@ -17,6 +17,7 @@
 #include <queue>
 #include <shared_mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "common/config.h"
@@ -54,6 +55,7 @@ class Context {
   std::deque<ReadPageGuard> read_set_;
 
   auto IsRootPage(page_id_t page_id) -> bool { return page_id == root_page_id_; }
+  ~Context();
 };
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
@@ -68,13 +70,23 @@ class BPlusTree {
   explicit BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
                      const KeyComparator &comparator, int leaf_max_size = LEAF_PAGE_SIZE,
                      int internal_max_size = INTERNAL_PAGE_SIZE);
-
   // Returns true if this B+ tree has no keys and values.
   auto IsEmpty() const -> bool;
 
   // Insert a key-value pair into this B+ tree.
   auto Insert(const KeyType &key, const ValueType &value, Transaction *txn = nullptr) -> bool;
 
+  // return the sibling's page_id of page_id
+  auto GetSiblingPageId(const BPlusTree::InternalPage *parent_page, const KeyType &key, Context &ctx)
+      -> std::pair<page_id_t, KeyType>;
+
+  void ReplaceKeyAt(BPlusTree::InternalPage *page, const KeyType &src, const KeyType &dst, Context &ctx);
+
+  auto InsertGetKeyAt(const KeyType &key, const KeyComparator &comparator, Context &ctx) -> page_id_t;
+
+  auto DeleteGetKeyAt(const KeyType &key, const KeyComparator &comparator, Context &ctx) -> page_id_t;
+  // Remove Entry From leaf page or internal page
+  void RemoveEntry(page_id_t basic_page_id, const KeyType &key, Context &ctx);
   // Remove a key and its value from this B+ tree.
   void Remove(const KeyType &key, Transaction *txn);
 
@@ -83,6 +95,10 @@ class BPlusTree {
 
   // Return the page id of the root node
   auto GetRootPageId() -> page_id_t;
+
+  void SetTreeEmpty(Context &ctx);
+
+  void SetRootPageId(page_id_t page_id, Context &ctx);
 
   // Index iterator
   auto Begin() -> INDEXITERATOR_TYPE;
@@ -116,12 +132,15 @@ class BPlusTree {
   // read data from file and remove one by one
   void RemoveFromFile(const std::string &file_name, Transaction *txn = nullptr);
 
+  void InsertIntoParent(page_id_t leaf_page_left_id, KeyType key, page_id_t leaf_page_right_id, Context &ctx);
+
  private:
   /* Debug Routines for FREE!! */
   void ToGraph(page_id_t page_id, const BPlusTreePage *page, std::ofstream &out);
 
   void PrintTree(page_id_t page_id, const BPlusTreePage *page);
-
+  // return the leaf page of key
+  auto GetKeyAt(const KeyType &key, const KeyComparator &comparator, Context &ctx) -> page_id_t;
   /**
    * @brief Convert A B+ tree into a Printable B+ tree
    *

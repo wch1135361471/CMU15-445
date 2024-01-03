@@ -17,6 +17,8 @@
 #include <list>
 #include <memory>
 #include <mutex>  // NOLINT
+#include <queue>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -65,7 +67,7 @@ class LockManager {
   class LockRequestQueue {
    public:
     /** List of lock requests for the same resource (table or row) */
-    std::list<LockRequest *> request_queue_;
+    std::list<std::shared_ptr<LockRequest>> request_queue_;
     /** For notifying blocked transactions on this rid */
     std::condition_variable cv_;
     /** txn_id of an upgrading transaction (if any) */
@@ -312,17 +314,56 @@ class LockManager {
  private:
   /** Spring 2023 */
   /* You are allowed to modify all functions below. */
-  auto UpgradeLockTable(Transaction *txn, LockMode lock_mode, const table_oid_t &oid) -> bool;
-  auto UpgradeLockRow(Transaction *txn, LockMode lock_mode, const table_oid_t &oid, const RID &rid) -> bool;
+  auto UpgradeLockTable(const std::shared_ptr<LockRequestQueue> &request_queue, std::shared_ptr<LockRequest> request)
+      -> bool;
+  auto UpgradeLockRow(const std::shared_ptr<LockRequestQueue> &request_queue, std::shared_ptr<LockRequest> request)
+      -> bool;
   auto AreLocksCompatible(LockMode l1, LockMode l2) -> bool;
   auto CanTxnTakeLock(Transaction *txn, LockMode lock_mode) -> bool;
-  void GrantNewLocksIfPossible(LockRequestQueue *lock_request_queue);
+  auto CheckLockUpdateTable(Transaction *txn, std::shared_ptr<LockRequestQueue> &queue, LockMode lock_mode,
+                            const std::shared_ptr<LockRequest> &request) -> bool;
+  auto CheckLockUpdateRow(Transaction *txn, std::shared_ptr<LockRequestQueue> &queue, LockMode lock_mode,
+                          const std::shared_ptr<LockRequest> &request) -> bool;
+  void GrantNewLocksIfPossible(std::shared_ptr<LockRequestQueue> &lock_request_queue);
   auto CanLockUpgrade(LockMode curr_lock_mode, LockMode requested_lock_mode) -> bool;
   auto CheckAppropriateLockOnTable(Transaction *txn, const table_oid_t &oid, LockMode row_lock_mode) -> bool;
-  auto FindCycle(txn_id_t source_txn, std::vector<txn_id_t> &path, std::unordered_set<txn_id_t> &on_path,
-                 std::unordered_set<txn_id_t> &visited, txn_id_t *abort_txn_id) -> bool;
+  auto CheckGrantLock(std::shared_ptr<LockRequestQueue> &list, Transaction *txn, LockMode lock_mode,
+                      const table_oid_t &oid) -> bool;
+  auto CheckGrantLock(std::shared_ptr<LockRequestQueue> &list, Transaction *txn, LockMode lock_mode,
+                      const table_oid_t &oid, const RID &rid) -> bool;
+  void EraseLockModeOfIdFromTxn(Transaction *txn, LockMode lock_mode, table_oid_t oid);
+  void EraseLockModeOfIdFromTxn(Transaction *txn, LockMode lockMode, const table_oid_t &oid, const RID &rid);
+  void InsertLockModeOfIdFromTxn(Transaction *txn, LockMode lock_mode, table_oid_t oid);
+  void InsertLockModeOfIdFromTxn(Transaction *txn, LockMode lock_mode, const table_oid_t &oid, const RID &rid);
+
+  auto GetTxnHoldLockOfTable(Transaction *txn, const table_oid_t &oid) -> LockRequest;
+  auto GetTxnHoldLockOfRow(Transaction *txn, const table_oid_t &oid, const RID &rid) -> LockRequest;
+
+  auto EraseRequestFromQueue(Transaction *txn, const table_oid_t &oid) -> bool;
+  auto EraseRequestFromQueue(Transaction *txn, const RID &rid) -> bool;
+
+  auto Dfs(txn_id_t tid, std::vector<txn_id_t> &path, std::unordered_map<int, bool> &is_vis) -> bool;
   void UnlockAll();
 
+  /*
+   * log_helper function
+   *
+   */
+  auto LockType(LockMode lock_mode) -> std::string {
+    switch (lock_mode) {
+      case LockMode::SHARED:
+        return "SHARD";
+      case LockMode::EXCLUSIVE:
+        return "EXCLUSIVE";
+      case LockMode::INTENTION_SHARED:
+        return "INTENTION_SHARED";
+      case LockMode::INTENTION_EXCLUSIVE:
+        return "INTENTION_EXCLUSIVE";
+      case LockMode::SHARED_INTENTION_EXCLUSIVE:
+        return "SHARED_INTENTION_EXCLUSIVE";
+    }
+    return "";
+  }
   /** Structure that holds lock requests for a given table oid */
   std::unordered_map<table_oid_t, std::shared_ptr<LockRequestQueue>> table_lock_map_;
   /** Coordination */

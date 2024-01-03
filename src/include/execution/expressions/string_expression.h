@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <ctype.h>
 #include <algorithm>
 #include <cctype>
 #include <string>
@@ -46,7 +47,17 @@ class StringExpression : public AbstractExpression {
 
   auto Compute(const std::string &val) const -> std::string {
     // TODO(student): implement upper / lower.
-    return {};
+    std::string tmp = val;
+    if (this->expr_type_ == StringExpressionType::Lower) {
+      for (char &c : tmp) {
+        c = tolower(c);
+      }
+    } else {
+      for (char &c : tmp) {
+        c = toupper(c);
+      }
+    }
+    return tmp;
   }
 
   auto Evaluate(const Tuple *tuple, const Schema &schema) const -> Value override {

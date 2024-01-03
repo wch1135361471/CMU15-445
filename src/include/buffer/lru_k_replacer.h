@@ -152,10 +152,16 @@ class LRUKReplacer {
   // Remove maybe_unused if you start using them.
   [[maybe_unused]] std::unordered_map<frame_id_t, LRUKNode> node_store_;
   [[maybe_unused]] size_t current_timestamp_{0};
-  [[maybe_unused]] size_t curr_size_{0};
-  [[maybe_unused]] size_t replacer_size_;
-  [[maybe_unused]] size_t k_;
-  [[maybe_unused]] std::mutex latch_;
+  size_t replacer_size_;
+  size_t k_;
+  size_t current_size_;
+  std::vector<bool> is_accessible_;
+  std::mutex latch_;
+  std::unordered_map<int, size_t> use_count_;
+  std::list<frame_id_t> history_list_;
+  std::unordered_map<frame_id_t, std::list<int>::iterator> history_map_;
+  std::list<frame_id_t> cache_list_;
+  std::unordered_map<frame_id_t, std::list<int>::iterator> cache_map_;
 };
 
 }  // namespace bustub
