@@ -25,7 +25,6 @@ namespace bustub {
 void TransactionManager::Commit(Transaction *txn) {
   txn->SetState(TransactionState::COMMITTED);
 
-
   if (enable_logging) {
     LogRecord log_record(txn->GetTransactionId(), txn->GetPrevLSN(), LogRecordType::COMMIT);
     auto lsn = log_manager_->AppendLogRecord(&log_record);
@@ -33,12 +32,9 @@ void TransactionManager::Commit(Transaction *txn) {
   }
   // Release all the locks.
   ReleaseLocks(txn);
-
-
 }
 
 void TransactionManager::Abort(Transaction *txn) {
-
   txn->SetState(TransactionState::ABORTED);
 
   /* TODO: revert all the changes in write set */
@@ -75,7 +71,6 @@ void TransactionManager::Abort(Transaction *txn) {
   }
 
   ReleaseLocks(txn);
-
 }
 
 void TransactionManager::BlockAllTransactions() { UNIMPLEMENTED("block is not supported now!"); }
