@@ -23,13 +23,24 @@
 namespace bustub {
 
 void TransactionManager::Commit(Transaction *txn) {
+  txn->SetState(TransactionState::COMMITTED);
+
+
+  if (enable_logging) {
+    LogRecord log_record(txn->GetTransactionId(), txn->GetPrevLSN(), LogRecordType::COMMIT);
+    auto lsn = log_manager_->AppendLogRecord(&log_record);
+    txn->SetPrevLSN(lsn);
+  }
   // Release all the locks.
   ReleaseLocks(txn);
 
-  txn->SetState(TransactionState::COMMITTED);
+
 }
 
 void TransactionManager::Abort(Transaction *txn) {
+
+  txn->SetState(TransactionState::ABORTED);
+
   /* TODO: revert all the changes in write set */
   for (auto write : *(txn->GetWriteSet())) {
     TupleMeta meta = write.table_heap_->GetTupleMeta(write.rid_);
@@ -56,9 +67,15 @@ void TransactionManager::Abort(Transaction *txn) {
                                       write.rid_, txn);
     }
   }
+
+  if (enable_logging) {
+    LogRecord log_record(txn->GetTransactionId(), txn->GetPrevLSN(), LogRecordType::ABORT);
+    auto lsn = log_manager_->AppendLogRecord(&log_record);
+    txn->SetPrevLSN(lsn);
+  }
+
   ReleaseLocks(txn);
 
-  txn->SetState(TransactionState::ABORTED);
 }
 
 void TransactionManager::BlockAllTransactions() { UNIMPLEMENTED("block is not supported now!"); }
